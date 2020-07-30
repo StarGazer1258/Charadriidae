@@ -1,12 +1,14 @@
 #include <stdio.h>
+
 #include "libraries/dictionary_manager.h"
+#include "util/logging.h"
 
 struct Translation json_translate_stroke(char* stroke) {
 
-}
+};
 
 int json_load_dictionary() {
-    printf("Loading JSON dictionary...\n");
+    logging.log(DEBUG, "Loading JSON dictionary...\n");
 
     return 1;
 }
