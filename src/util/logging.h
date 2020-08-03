@@ -11,11 +11,11 @@
 #define INFO 1
 #define DEBUG 0
 
-static int log_level = CRITICAL;
+static int log_level = INFO;
 
 struct Logging {
     void (*log)(int level, char* message);
-    void (*logf)(int level, char* message, ...)
+    void (*logf)(int level, char* message, ...);
 };
 
 static void logging_logf(int level, char* message, ...) {
