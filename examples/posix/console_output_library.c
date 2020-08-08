@@ -12,11 +12,7 @@ void console_output(struct Translation translation) {
          strcat(backsp, "\b \b");
     }
 
-    /* One more to get rid of the space */
-    if(translation.backspace > 0) strcat(backsp, "\b \b");
-
-    logging.logf(INFO, "%s%s ", backsp, translation.translation);
-    fflush(NULL);
+    logging.logf(INFO, "%s%s", backsp, translation.translation);
 }
 
 int setup_console_output_library(struct OutputLibrary* output_library) {

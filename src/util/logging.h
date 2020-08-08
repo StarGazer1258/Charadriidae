@@ -25,12 +25,14 @@ static void logging_logf(int level, char* message, ...) {
         vprintf(message, args);
         va_end(args);
     }
+    fflush(NULL);
 }
 
 static void logging_log(int level, char* message) {
     if(level >= log_level) {
         printf(message);
     }
+    fflush(NULL);
 }
 
 static struct Logging logging = { &logging_log, &logging_logf };

@@ -1,7 +1,10 @@
+#include <stdlib.h>
 #include <string.h>
 
 #include "engine.h"
 #include "translation.h"
+
+#include "../util/minmax.h"
 #include "../util/logging.h"
 
 #include "../libraries/dictionary_manager.h"
@@ -13,8 +16,6 @@ int start_engine(struct StenoEngine* engine) {
     } else {
         logging.log(ERROR, "Stenography engine already running.\n");
     }
-    
-    
 
     while(engine->running) {
         for(int i = 0; i < engine->n_input_libraries; i++) {
@@ -77,22 +78,79 @@ int load_output_library(struct StenoEngine* engine, struct OutputLibrary output_
     return 1;
 }
 
-void print_stroke_bin(Stroke stroke) {
-    for(unsigned i = 1; i <= (1 << 22); i *= 2) {
-        printf("%d", (stroke & i) ? 1 : 0);
-    }
-    printf("\n");
-}
-
-void on_stroke(struct StenoEngine* engine, Stroke stroke) {
+void on_stroke(struct StenoEngine* engine, char* stroke) {
     struct Translation translation = {};
     
-    if(stroke == AST) {
-        struct Translation prev = pop_translation_history(engine);
+    if(strlen(stroke) == 0) return;
+
+    if(!strcmp(stroke, "*")) {
+        struct Translation prev = *pop_translation_history(engine);
         translation.stroke = AST;
         translation.backspace = strlen(prev.translation);
     } else {
+        for(int i = *engine->dictionary_manager.longest_translation; i > 0; i--) {
+            if(peek_translation_history(engine, i)->stroke == NULL) continue;
+            
+            char* history_stroke = malloc(24 * (i + 1) + 1);
+
+            strcpy(history_stroke, "");
+            for(int h = i; h > 0; h--) {
+                strcat(history_stroke, peek_translation_history(engine, h)->stroke);
+                strcat(history_stroke, "/");
+            }
+
+            strcat(history_stroke, stroke);
+
+            /* logging.logf(INFO, "History stroke: %s\n", history_stroke); */
+
+            struct Translation history_translation = engine->dictionary_manager.translate_stroke(history_stroke);
+
+            if(strlen(history_translation.translation) > 0) {
+                /*
+                    1. Compare the last translation and current to determine # or backspaces needed
+                    2. *                                                   * needed replacement characters
+                */
+
+                char* past_translation = malloc(i * (sizeof(history_translation.translation) + 1));
+                strcpy(past_translation, "");
+                
+                for(int n = i; n > 0; n--) {
+                    struct Translation nth_translation = *pop_translation_history(engine);
+                    strcat(past_translation, nth_translation.translation);
+                    strcat(past_translation, " ");
+                }
+                
+                
+                for(int c = 0; c < MIN(strlen(past_translation), strlen(history_translation.translation)); c++) {
+                    
+                    if(past_translation[c] != history_translation.translation[c]) {
+                        history_translation.stroke = malloc(sizeof(history_stroke));
+                        strcpy(history_translation.stroke, history_stroke);
+                        history_translation.backspace = strlen(past_translation) - (c + 1);
+                        break;
+                    }
+                }
+                
+                push_translation_history(engine, history_translation);
+                for(int i = 0; i < engine->n_output_libraries; i++) {
+                    engine->output_libraries[i].output(history_translation);
+                }
+
+                free(history_stroke);
+                return;
+            }
+
+            free(history_stroke);
+        }
+
         translation = engine->dictionary_manager.translate_stroke(stroke);
+        if(strlen(translation.translation) == 0) {
+            strcpy(translation.translation, stroke);
+            strcat(translation.translation, " ");
+        }
+        translation.stroke = malloc(sizeof(translation.stroke));
+        strcpy(translation.stroke, stroke);
+
         push_translation_history(engine, translation);
     }
 
@@ -111,24 +169,26 @@ void push_translation_history(struct StenoEngine* engine, struct Translation tra
     }
 }
 
-struct Translation peek_translation_history(struct StenoEngine* engine) {
-    struct Translation ret;
+struct Translation* peek_translation_history(struct StenoEngine* engine, unsigned go_back_n) {
+    struct Translation* ret;
 
-    if(engine->translation_history_index == 0) {
-        ret = engine->translation_history[sizeof(engine->translation_history) / sizeof(engine->translation_history[0]) - 1];
+    unsigned back = go_back_n % (sizeof(engine->translation_history)/sizeof(engine->translation_history[0]));
+
+    if(engine->translation_history_index < back) {
+        ret = &engine->translation_history[(sizeof(engine->translation_history) / sizeof(engine->translation_history[0]) - 1) - (back - engine->translation_history_index)];
     } else {
-        ret = engine->translation_history[engine->translation_history_index - 1];
+        ret = &engine->translation_history[engine->translation_history_index - back];
     }
 
     return ret;
 }
 
-struct Translation pop_translation_history(struct StenoEngine* engine) {
+struct Translation* pop_translation_history(struct StenoEngine* engine) {
     if(engine->translation_history_index == 0) {
         engine->translation_history_index = sizeof(engine->translation_history) / sizeof(engine->translation_history[0]) - 1;
     } else {
         engine->translation_history_index--;
     }
 
-    return engine->translation_history[engine->translation_history_index];
+    return &engine->translation_history[engine->translation_history_index];
 }

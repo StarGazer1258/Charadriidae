@@ -25,6 +25,4 @@
 #define D    2097152
 #define Z    4194304
 
-typedef unsigned Stroke;
-
 #endif

@@ -22,7 +22,7 @@ struct timeval select_timeout;
 struct input_event event;
 int keys_held = 0;
 int stroking = 0;
-Stroke keyboard_stroke;
+int keyboard_stroke;
 
 int keyboard_setup() {
     kbd = open("/dev/input/event3", O_RDONLY);
@@ -174,8 +174,8 @@ void keyboard_scan(struct StenoEngine* engine) {
         }
 
         if(stroking && !keys_held) {
-            logging.log(DEBUG, "Sending stroke...\n");
-            on_stroke(engine, keyboard_stroke);
+            logging.logf(DEBUG, "Sending stroke: %d\n", keyboard_stroke);
+            on_stroke(engine, engine->dictionary_manager.stroke_to_char(keyboard_stroke));
             keyboard_stroke = 0;
             stroking = 0;
         }

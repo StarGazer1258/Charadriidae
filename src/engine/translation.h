@@ -4,10 +4,10 @@
 #include "stroke.h"
 
 struct Translation {
-    Stroke stroke;
+    char* stroke;
 
     unsigned int backspace;
-    char* translation[140]; /* 140 characters, in case you want to brief a tweet. */
+    char* translation[141]; /* 140 characters, in case you want to brief a tweet. + 1 for a space */
 };
 
 #endif

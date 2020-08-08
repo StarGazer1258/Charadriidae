@@ -4,7 +4,9 @@
 #include "../engine/translation.h"
 
 struct DictionaryManager {
-    struct Translation (*translate_stroke)(Stroke stroke);
+    unsigned* longest_translation;
+    char* (*stroke_to_char)(int stroke);
+    struct Translation (*translate_stroke)(char* stroke);
     int (*load_dictionary)();
 };
 

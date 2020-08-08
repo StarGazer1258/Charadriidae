@@ -26,7 +26,7 @@ struct StenoEngine {
 int start_engine(struct StenoEngine* engine);
 int stop_engine(struct StenoEngine* engine);
 
-void on_stroke(struct StenoEngine* engine, Stroke stroke);
+void on_stroke(struct StenoEngine* engine, char* stroke);
 
 int load_dictionary_manager(struct StenoEngine* engine, struct DictionaryManager dictionary_manager);
 
@@ -37,7 +37,7 @@ int load_output_library(struct StenoEngine* engine, struct OutputLibrary output_
 int unload_output_library(struct StenoEngine* engine, struct OutputLibrary output_library);
 
 void push_translation_history(struct StenoEngine* engine, struct Translation translation);
-struct Translation peek_translation_history(struct StenoEngine* engine);
-struct Translation pop_translation_history(struct StenoEngine* engine);
+struct Translation* peek_translation_history(struct StenoEngine* engine, unsigned go_back_n);
+struct Translation* pop_translation_history(struct StenoEngine* engine);
 
 #endif

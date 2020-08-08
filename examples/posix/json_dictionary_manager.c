@@ -6,16 +6,16 @@
 #include "../../src/libraries/dictionary_manager.h"
 #include "../../src/util/logging.h"
 
+int json_longest_translation = 0;
 json_object* json_dictionary;
 
-struct Translation json_translate_stroke(Stroke stroke) {
-
-    struct Translation translation = {};
-    char lookup[23] = "";
+char* json_stroke_to_char(int stroke) {
+    char* lookup = malloc(24);
+    strcpy(lookup, "");
 
     if(stroke & NUM) strcat(lookup, "#");
 
-    if(!(stroke & (S1 + T1 + K + P1 + W + H + R1 + A + O + AST + E + U))) strcat(lookup, "-");
+    if(!(stroke & (NUM + S1 + T1 + K + P1 + W + H + R1 + A + O + AST + E + U)) && stroke > 0) strcat(lookup, "-");
 
     if(stroke & S1) strcat(lookup, "S");
     if(stroke & T1) strcat(lookup, "T");
@@ -40,13 +40,22 @@ struct Translation json_translate_stroke(Stroke stroke) {
     if(stroke & D) strcat(lookup, "D");
     if(stroke & Z) strcat(lookup, "Z");
 
-    logging.logf(DEBUG, "%s\n", lookup);
+    return lookup;
+}
 
-    strcat(translation.translation, json_object_get_string(json_object_object_get(json_dictionary, lookup)));
+struct Translation json_translate_stroke(char* stroke) {
+
+    struct Translation translation = {};
+
+    logging.logf(DEBUG, "%s\n", stroke);
+
+    char* result = json_object_get_string(json_object_object_get(json_dictionary, stroke));
+    if(result != NULL) {
+        strcat(translation.translation, result);
+        strcat(translation.translation, " ");
+    }
 
     logging.logf(DEBUG, "%s\n", translation.translation);
-
-    translation.stroke = stroke;
 
     return translation;
 }
@@ -56,12 +65,22 @@ int json_load_dictionary() {
 
     json_dictionary = json_object_from_file("dictionaries/main.json");
 
-    /* logging.logf(DEBUG, "%s\n", json_object_to_json_string(json_dictionary)); */
+    json_object_object_foreach(json_dictionary, key, val) {
+        int stroke_count = 0;
+        for(int i = 0; i < strlen(key); i++) {
+            if(key[i] == '/') stroke_count++;
+        }
+        if(stroke_count > json_longest_translation) json_longest_translation = stroke_count;
+    }
+
+    logging.logf(DEBUG, "Longest stroke: %d\n", json_longest_translation);
 
     return 1;
 }
 
 int setup_json_dictionary_manager(struct DictionaryManager* dictionary_manager) {
+    dictionary_manager->longest_translation = &json_longest_translation;
+    dictionary_manager->stroke_to_char = json_stroke_to_char;
     dictionary_manager->translate_stroke = json_translate_stroke;
     dictionary_manager->load_dictionary = json_load_dictionary;
 
